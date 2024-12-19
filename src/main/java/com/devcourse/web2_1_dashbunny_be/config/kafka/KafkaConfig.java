@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.config.kafka;
 
 import com.devcourse.web2_1_dashbunny_be.feature.admin.kafka.CouponRequestMessage;
@@ -17,9 +18,11 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import java.util.HashMap;
 import java.util.Map;
 
+*/
 /**
  * 카프카 설정.
- */
+ *//*
+
 @EnableKafka
 @Configuration
 public class KafkaConfig {
@@ -47,3 +50,4 @@ public class KafkaConfig {
 //    return factory;
 //  }
 }
+*/

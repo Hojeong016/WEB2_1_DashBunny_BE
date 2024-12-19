@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.feature.user.userCoupon.controller;
 
 import com.devcourse.web2_1_dashbunny_be.domain.user.User;
@@ -25,9 +26,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
 
+*/
 /**
  * 사용자 쿠폰 컨트롤러.
- */
+ *//*
+
 
 @Slf4j
 @RestController
@@ -38,9 +41,11 @@ public class UserCouponController {
   private final UserService userService;
   private final KafkaProducerService kafkaProducerService;
 
-  /**
+  */
+/**
    * 관리자 발급한 일반 쿠폰 목록 조회 api (GET).
-   */
+   *//*
+
   @GetMapping("/general")
   public ResponseEntity<List<GeneralCouponListResponseDto>> getGeneralCoupon(@RequestHeader("Authorization") String authorizationHeader) {
     User currentUser = userService.getCurrentUser(authorizationHeader);
@@ -48,9 +53,11 @@ public class UserCouponController {
     return ResponseEntity.status(HttpStatus.OK).body(coupons);
   }
 
-  /**
+  */
+/**
    * 관리자 발급한 선착순 쿠폰  조회 api (GET).
-   */
+   *//*
+
   @GetMapping("/first-come")
   public ResponseEntity<?> getFirstComeCoupon(@RequestHeader("Authorization") String authorizationHeader) {
     User currentUser = userService.getCurrentUser(authorizationHeader);
@@ -65,9 +72,11 @@ public class UserCouponController {
     }
   }
 
-  /**
+  */
+/**
    * 사장님이 발급한 쿠폰 목록 조회 api (GET).
-   */
+   *//*
+
   @GetMapping("/owner/{storeId}")
   public ResponseEntity<List<OwnerCouponListResponseDto>> getOwnerCoupon(@PathVariable String storeId
           , @RequestHeader("Authorization") String authorizationHeader) {
@@ -77,9 +86,11 @@ public class UserCouponController {
     return ResponseEntity.status(HttpStatus.OK).body(ownerCoupons);
   }
 
-  /**
+  */
+/**
    * 일반 쿠폰 다운로드 api (POST).
-   */
+   *//*
+
   @PostMapping("/download/general/{couponId}")
   public ResponseEntity<?> downloadGeneralCoupon(@PathVariable Long couponId
           , @RequestHeader("Authorization") String authorizationHeader) {
@@ -91,9 +102,11 @@ public class UserCouponController {
 
   }
 
-  /**
+  */
+/**
    * 가게 쿠폰 다운로드 api (POST).
-   */
+   *//*
+
   @PostMapping("/download/owner/{couponId}")
   public ResponseEntity<?> downloadOwnerCoupon(@PathVariable Long couponId
           , @RequestHeader("Authorization") String authorizationHeader) {
@@ -104,9 +117,11 @@ public class UserCouponController {
 
   }
 
-  /**
+  */
+/**
    * 선착순 쿠폰 다운로드 api (POST).
-   */
+   *//*
+
   @PostMapping("/download/first-come/{couponId}") //, HttpServletRequest request
   public ResponseEntity<?> downloadFirstComeCoupon(@PathVariable Long couponId
           , @RequestHeader("Authorization") String authorizationHeader) {
@@ -137,9 +152,11 @@ public class UserCouponController {
 
 
 
-  /**
+  */
+/**
    * 사용자 쿠폰함 쿠폰 목록 조회 api (GET).
-   */
+   *//*
+
   @GetMapping("/box")
   public ResponseEntity<List<UserCouponListResponseDto>> getBoxCoupon(
            @RequestHeader("Authorization") String authorizationHeader
@@ -155,3 +172,4 @@ public class UserCouponController {
 
 
 }
+*/

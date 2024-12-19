@@ -9,6 +9,7 @@ import com.devcourse.web2_1_dashbunny_be.feature.owner.menu.repository.MenuRepos
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@ToString
 public class OrderInfoRequestDto {
 
   private String storeId; // 가게 ID
@@ -30,6 +32,7 @@ public class OrderInfoRequestDto {
   private String storeNote; // 사장님에게 전달할 메모
   private String riderNote; // 라이더에게 전달할 메모
   private String paymentId;
+  private Long deliveryPrice;
   private Long totalAmount;
 
   public Orders toEntity(List<OrderItemDto> orderItems, MenuRepository menuRepository, User user, StoreManagement store) {
@@ -52,6 +55,7 @@ public class OrderInfoRequestDto {
     orders.setOrderItems(orderItemList);
     orders.setDeliveryAddress(this.deliveryAddress);
     orders.setDetailDeliveryAddress(this.detailDeliveryAddress);
+    orders.setDeliveryPrice(this.deliveryPrice);
     orders.setStoreNote(this.storeNote);
     orders.setRiderNote(this.riderNote);
     orders.setPaymentId(this.paymentId);

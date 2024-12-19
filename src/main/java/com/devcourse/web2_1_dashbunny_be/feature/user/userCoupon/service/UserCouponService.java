@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.feature.user.userCoupon.service;
 
 import com.devcourse.web2_1_dashbunny_be.domain.admin.AdminCoupon;
@@ -33,9 +34,11 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
+*/
 /**
  * 사용자 쿠폰 서비스.
- */
+ *//*
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -51,9 +54,11 @@ public class UserCouponService {
   private final RedisTemplate<String, Object> redisTemplate;
 
 
-  /**
+  */
+/**
    * 관리자가 발급한 활성화된 일반 쿠폰 목록을 조회하는 메서드.
-   */
+   *//*
+
   public List<GeneralCouponListResponseDto> findActiveRegularCoupons(User currentUser) {
 
 
@@ -78,9 +83,11 @@ public class UserCouponService {
             .toList();
   }
 
-  /**
+  */
+/**
    * 사장님이 발급한 활성화된 쿠폰 목록 조회.
-   */
+   *//*
+
   public List<OwnerCouponListResponseDto> findActiveOwnerCoupons(String storeId) {
     List<OwnerCoupon> ownerCoupons=ownerCouponRepository.findByStoreManagement_StoreIdAndCouponStatus(storeId, com.devcourse.web2_1_dashbunny_be.domain.owner.role.CouponStatus.ACTIVE);
 
@@ -89,9 +96,11 @@ public class UserCouponService {
             .toList();
   }
 
-  /**
+  */
+/**
    * 관리자가 발급한 활성화된 선착순 쿠폰을 조회하는 메서드.
-   */
+   *//*
+
   @Transactional
   public FirstComeCouponResponseWrapper findActiveFirstComeCoupon(User currentUser) {
 
@@ -149,9 +158,11 @@ public class UserCouponService {
   }
 
 
-  /**
+  */
+/**
    * 관리자가 발급한 활성화된  쿠폰을 다운로드하는 메서드.
-   */
+   *//*
+
   @Transactional
   public UserCoupon downloadCoupon(Long couponId, IssuedCouponType issuedCouponType,User currentUser) {
 
@@ -163,9 +174,11 @@ public class UserCouponService {
       throw new CustomException("중복 다운로드가 불가능한 쿠폰입니다.", HttpStatus.BAD_REQUEST);
     }
 
-    /**
+    */
+/**
      * 발급 유형별 다운로드 로직 처리.
-     */
+     *//*
+
     switch (issuedCouponType) {
       case ADMIN: //관리자가 발급한 쿠폰
         return downloadAdminCoupon(currentUser, couponId);
@@ -177,9 +190,11 @@ public class UserCouponService {
   }
 
 
-  /**
+  */
+/**
    * 관리자가 발급한 쿠폰 다운로드 메소드.
-   */
+   *//*
+
   @Transactional
   public UserCoupon downloadAdminCoupon(User currentUser, Long couponId) {
     //Admin 쿠폰 조회
@@ -203,12 +218,14 @@ public class UserCouponService {
     return userCouponRepository.save(downloadCoupon); //쿠폰 저장
   }
 
-  /**
+  */
+/**
    * 사장님이 발급한 쿠폰 다운로드 메소드.
    * @param currentUser
    * @param couponId
    * @return
-   */
+   *//*
+
   @Transactional
   public UserCoupon downloadOwnerCoupon(User currentUser, Long couponId) {
     //Owner 쿠폰 조회
@@ -227,9 +244,11 @@ public class UserCouponService {
 
   }
 
-  /**
+  */
+/**
    * 관리자가 발급한 선착순 쿠폰 다운로드 메서드.
-   */
+   *//*
+
 //  @Transactional
 //  //원래 반환 타입 UserCoupon 이었음
 //  public synchronized void processCouponDownloadRequest(Long couponId, Long userId) {
@@ -315,9 +334,11 @@ public class UserCouponService {
 //  }
 
 
-  /**
+  */
+/**
    * 관리자가 발급한 선착순 쿠폰 다운로드 요청을 Kafka로 전송.
-   */
+   *//*
+
   @Transactional
   public void processCouponDownloadRequest(Long couponId, Long userId) {
     String redisKey = "firstComeCoupon:" + couponId;
@@ -384,9 +405,11 @@ public class UserCouponService {
 //    }
 //  }
 
-  /**
+  */
+/**
    Redis 발급 개수를 감소시키는 메서드.
-   */
+   *//*
+
   @Transactional
   public void decrementCouponCount(Long couponId) {
     String redisKey = "firstComeCoupon:" + couponId;
@@ -395,45 +418,55 @@ public class UserCouponService {
     log.info("Decremented coupon count for Coupon ID: {}. New count: {}", couponId, newCount);
   }
 
-  /**
+  */
+/**
    * 배치로 사용자 쿠폰 저장 메서드.
-   */
+   *//*
+
   @Transactional
   public void saveAll(List<UserCoupon> userCoupons) {
     userCouponRepository.saveAll(userCoupons);
     log.info("Batch saved {} user coupons", userCoupons.size());
   }
 
-  /**
+  */
+/**
    * 이미 다운로드를 받은 쿠폰인지 확인하는 메서드.
-   */
+   *//*
+
   public boolean alreadyDownloadedCoupon(Long userId, Long couponId,IssuedCouponType issuedCouponType) {
     //이미 다운로드한 쿠폰인지 확인
     boolean alreadyDownloaded = userCouponRepository.existsByUserIdAndCouponIdAndIssuedCouponType(userId, couponId, IssuedCouponType.ADMIN);
     return alreadyDownloaded;
   }
 
-  /**
+  */
+/**
    * 쿠폰 중복 다운로드 여부 확인
-   */
+   *//*
+
   public boolean isAlreadyDownloaded(Long userId, Long couponId) {
     String redisKey = "user:coupon:" + userId + ":" + couponId;
     Boolean exists = redisTemplate.hasKey(redisKey);
     return Boolean.TRUE.equals(exists);
   }
 
-  /**
+  */
+/**
    * 쿠폰 다운로드 기록.
-   */
+   *//*
+
   public void markCouponAsDownloaded(Long userId, Long couponId) {
     String redisKey = "user:coupon:" + userId + ":" + couponId;
     redisTemplate.opsForValue().set(redisKey, "true");
     redisTemplate.expire(redisKey, Duration.ofDays(30)); // 쿠폰 만료일 기준 설정 가능
   }
 
-  /**
+  */
+/**
    * 현재 사용자 쿠폰함 목록을 조회하는 메소드.
-   */
+   *//*
+
   @Transactional
   public List<UserCouponListResponseDto> findNotUsedCoupons(User currentUser) {
     List<UserCoupon> availableCoupons = userCouponRepository.findByUserIdAndCouponUsedIsFalseAndIsExpiredIsFalse(currentUser.getUserId());
@@ -482,9 +515,11 @@ public class UserCouponService {
   }
 
 
-  /**
+  */
+/**
    * 선착순 쿠폰 상태가 조기종료이거나, 만료일 경우 레디스에서 삭제.
-   */
+   *//*
+
   @Scheduled(cron = "0 0 0 * * ?") // 매일 자정 실행
   public void cleanupExpiredCoupons() {
     List<CouponStatus> statuses = Arrays.asList(CouponStatus.EARLY_TERMINATED, CouponStatus.EXPIRED);
@@ -497,9 +532,11 @@ public class UserCouponService {
 
   }
 
-  /**
+  */
+/**
    * 레디스에서 쿠폰 데이터 삭제.
-   */
+   *//*
+
   public void deleteCouponsFromRedis(Long couponId) {
     String redisKey = "firstComeCoupon:" + couponId;
     Boolean isDeleted = redisTemplate.delete(redisKey);
@@ -515,9 +552,11 @@ public class UserCouponService {
     return userCouponRepository.countByCouponId(couponId);
   }
 
-  /**
+  */
+/**
    * 현재 사용자의 로그인 정보를 조회.
-   */
+   *//*
+
 //  public User currentUserValidation() {
 //    //String currentUser = SecurityUtil.getCurrentUsername(); // 현재 로그인한 사용자 ID (전화번호 또는 providerId)
 //    String currentUser = SecurityContextHolder.getContext().getAuthentication().getName(); // 현재 로그인한 사용자 ID (전화번호 또는 providerId)
@@ -541,3 +580,4 @@ public class UserCouponService {
 //  }
 
 }
+*/

@@ -67,11 +67,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.session:spring-session-data-redis:3.3.2'
 
-    //Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'org.apache.kafka:kafka_2.13:3.7.0'
-    implementation 'org.apache.kafka:kafka-clients:3.7.0'
-
     //websocket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     // Lombok
@@ -99,12 +94,12 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // Protobuf Java 라이브러리
-    implementation 'com.google.protobuf:protobuf-java:4.28.2'
+    implementation 'com.google.protobuf:protobuf-java:4.29.1'
 }
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.28.2"
+        artifact = "com.google.protobuf:protoc:4.29.1"
     }
     generatedFilesBaseDir = "$projectDir/src/generated"
     generateProtoTasks {

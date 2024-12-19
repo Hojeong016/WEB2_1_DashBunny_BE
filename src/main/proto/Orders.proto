@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_package = "com.order.generated";
+
+import "OrderStatus.proto";
+import "OrderItem.proto";
+option java_outer_classname = "OrdersProtobuf";
+
+message Orders {
+  int64 orderId = 1;                        // 주문 ID
+  int64 userId = 2;                         // 사용자 ID
+  string storeId = 3;                        // 가게 ID
+  repeated OrderItem orderItems = 4;        // 주문 항목 리스트
+  string deliveryAddress = 6;               // 배달 주소
+  string detailDeliveryAddress = 7;         // 상세 배달 주소
+  string storeNote = 8;                     // 사장님 메모
+  string riderNote = 9;                     // 라이더 메모
+  int64 deliveryPrice = 12;                 // 배달 비용
+  int64 totalPrice = 15;                    // 총 금액
+  int32 totalMenuCount = 16;                // 총 메뉴 개수
+  OrderStatus orderStatus = 17;             // 주문 상태
+  int32 preparationTime = 18;               // 준비 시간 (분 단위)
+}

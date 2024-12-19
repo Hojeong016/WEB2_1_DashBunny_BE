@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.feature.admin.kafka;
 
 import com.devcourse.web2_1_dashbunny_be.domain.admin.AdminCoupon;
@@ -182,4 +183,4 @@ public class KafkaConsumerService {
 
 
 //역할:Kafka에서 다운로드 요청 메시지를 수신하고 UserCouponService를 호출해 처리한다.
-//장점:요청을 순서대로 처리하여 요청 순서와 발급 순서 일치를 보장한다.
+//장점:요청을 순서대로 처리하여 요청 순서와 발급 순서 일치를 보장한다.*/

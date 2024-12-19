@@ -10,6 +10,7 @@ import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 주문내역 entity.
@@ -18,7 +19,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-
+@ToString
 public class Orders implements Serializable {
 
   @Id
@@ -66,5 +67,3 @@ public class Orders implements Serializable {
 
   private int preparationTime;
 }
-
-//

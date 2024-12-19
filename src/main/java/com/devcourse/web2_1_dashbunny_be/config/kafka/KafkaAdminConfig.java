@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.config.kafka;
 
 import jakarta.annotation.PostConstruct;
@@ -48,3 +49,4 @@ public class KafkaAdminConfig {
             .build();
   }
 }
+*/

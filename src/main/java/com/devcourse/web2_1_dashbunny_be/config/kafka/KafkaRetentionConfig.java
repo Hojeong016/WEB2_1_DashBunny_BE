@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.config.kafka;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -11,9 +12,11 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Collections;
 import java.util.Properties;
 
+*/
 /**
  * kafka 메세지 유지 기한 설정.
- */
+ *//*
+
 @Configuration
 public class KafkaRetentionConfig {
 
@@ -35,3 +38,4 @@ public class KafkaRetentionConfig {
     }
   }
 }
+*/

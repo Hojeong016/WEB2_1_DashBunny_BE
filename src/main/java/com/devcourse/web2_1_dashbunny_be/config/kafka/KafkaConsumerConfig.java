@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.config.kafka;
 
 
@@ -50,3 +51,4 @@ public class KafkaConsumerConfig {
     return factory;
   }
 }
+*/

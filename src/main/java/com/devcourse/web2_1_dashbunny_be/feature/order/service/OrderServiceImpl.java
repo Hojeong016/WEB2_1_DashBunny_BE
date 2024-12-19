@@ -5,7 +5,6 @@ import com.devcourse.web2_1_dashbunny_be.domain.owner.StoreFeedBack;
 import com.devcourse.web2_1_dashbunny_be.domain.owner.StoreManagement;
 import com.devcourse.web2_1_dashbunny_be.domain.user.OrderItem;
 import com.devcourse.web2_1_dashbunny_be.domain.user.Orders;
-import com.devcourse.web2_1_dashbunny_be.domain.user.Payment;
 import com.devcourse.web2_1_dashbunny_be.domain.user.User;
 import com.devcourse.web2_1_dashbunny_be.domain.user.role.OrderStatus;
 import com.devcourse.web2_1_dashbunny_be.feature.order.controller.dto.*;
@@ -15,13 +14,8 @@ import com.devcourse.web2_1_dashbunny_be.feature.owner.menu.repository.MenuRepos
 import com.devcourse.web2_1_dashbunny_be.feature.order.repository.OrdersRepository;
 import com.devcourse.web2_1_dashbunny_be.feature.owner.store.repository.StoreFeedBackRepository;
 import com.devcourse.web2_1_dashbunny_be.feature.owner.store.repository.StoreManagementRepository;
-import com.devcourse.web2_1_dashbunny_be.feature.user.dto.Refund.RefundRequestDto;
 import com.order.generated.ordersListResponseProtobuf;
-import com.devcourse.web2_1_dashbunny_be.feature.user.dto.Refund.RefundResponseDto;
-import com.devcourse.web2_1_dashbunny_be.feature.user.repository.PaymentRepository;
 import com.devcourse.web2_1_dashbunny_be.feature.user.repository.UserRepository;
-import com.devcourse.web2_1_dashbunny_be.feature.user.service.PaymentService;
-import com.devcourse.web2_1_dashbunny_be.feature.user.service.RefundService;
 import com.order.generated.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,13 +23,12 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -52,9 +45,7 @@ public class OrderServiceImpl implements OrderService {
   private final UserRepository userRepository;
   private final StoreManagementRepository storeManagementRepository;
   private final StoreFeedBackRepository storeFeedBackRepository;
-  private final RefundService refundService;
-  private final PaymentService paymentService;
-  private final PaymentRepository paymentRepository;
+  private final OrderCacheService orderCacheService;
 
   /**
    * 사용자의 주문 요청을 처리합니다.
@@ -69,7 +60,7 @@ public class OrderServiceImpl implements OrderService {
       StoreManagement store = validator.validateStoreId(orderInfoRequestDto.getStoreId());
       Orders orders = orderInfoRequestDto.toEntity(orderInfoRequestDto.getOrderItems(), menuRepository, user, store);
 
-
+      log.info(orders.getDeliveryAddress());
       //재고 등록이 된 메뉴 리스트
       List<OrderItem> stockItems = filterStockItems(orders.getOrderItems(),true);
       Map<Long, MenuManagement> stockItemsMenuCache = getMenuCache(stockItems);
@@ -80,6 +71,8 @@ public class OrderServiceImpl implements OrderService {
       orders.setTotalMenuCount(stockItems.size() + nonStockItems.size());
       // 주문 저장
       ordersRepository.save(orders);
+      //레디스 캐시 저장
+      saveOrderToRedis(orders, orders.getStore().getStoreId());
       // 메시지 알림
       StoreOrderAlarmResponseDto responseDto = StoreOrderAlarmResponseDto.fromEntity(orders);
       // 메시지 페이로드 구성
@@ -94,6 +87,45 @@ public class OrderServiceImpl implements OrderService {
 
       return orders;
     });
+  }
+
+  /**
+   * 주문 정보를 프로토버퍼를 사용하여 바이너리 형태로 변환 후 레디스 캐시에 저장합니다.
+   * key : storeId
+   * filed : orderId
+   * value : Orders
+   */
+  private void saveOrderToRedis(Orders orders, String storeId){
+
+    OrdersProtobuf.Orders order = OrdersProtobuf.Orders.newBuilder()
+            .setOrderId(orders.getOrderId())
+            .setUserId(orders.getUser().getUserId())
+            .setStoreId(orders.getStore().getStoreId())
+            .setDeliveryAddress(orders.getDeliveryAddress())
+            .setDetailDeliveryAddress(orders.getDetailDeliveryAddress())
+            .setStoreNote(orders.getStoreNote())
+            .setRiderNote(orders.getRiderNote())
+            .setDeliveryPrice(orders.getDeliveryPrice())
+            .setTotalPrice(orders.getTotalPrice())
+            .setTotalMenuCount(orders.getTotalMenuCount())
+            .setOrderStatus(OrderStatusProtobuf.OrderStatus.PENDING)
+            .setPreparationTime(orders.getPreparationTime())
+            .addAllOrderItems(orders.getOrderItems().stream()
+                    .map(this::OrderItemToProto) // OrderItem 변환
+                    .collect(Collectors.toList())) // 리스트로 수집
+            .build();
+    // 직렬화
+    orderCacheService.addOrderToStore(storeId, order.getOrderId(), order);
+  }
+
+  private OrderItemProtobuf.OrderItem OrderItemToProto(OrderItem orderItem) {
+    return OrderItemProtobuf.OrderItem.newBuilder()
+            .setMenuId(orderItem.getMenu().getMenuId())
+            .setMenuName(orderItem.getMenu().getMenuName())
+            .setStockAvailableAtOrder(orderItem.isStockAvailableAtOrder())
+            .setQuantity(orderItem.getQuantity())
+            .setPrice(orderItem.getTotalPrice())
+            .build();
   }
 
   private void processStockItems(List<OrderItem> stockItems,
@@ -205,7 +237,6 @@ public class OrderServiceImpl implements OrderService {
     return CompletableFuture.completedFuture(responseDto);
   }
 
-
   @Async
   @Transactional
   @Override
@@ -224,13 +255,6 @@ public class OrderServiceImpl implements OrderService {
 
     DeclineOrdersResponseDto responseDto = DeclineOrdersResponseDto
             .fromEntity(orders, declineRequestDto.getDeclineReasonType());
-
-    Payment payment = paymentRepository.findByOrderId(orders.getPaymentId()).orElseThrow(IllegalStateException::new);
-    RefundRequestDto refundRequestDto = RefundRequestDto.builder()
-            .cancelAmount(orders.getTotalPrice())
-            .cancelReason(String.valueOf(declineRequestDto.getDeclineReasonType())).build();
-
-    refundService.createRefund(payment.getPaymentKey(), refundRequestDto);
 
     return CompletableFuture.completedFuture(responseDto);
   }
@@ -285,6 +309,7 @@ public class OrderServiceImpl implements OrderService {
             .addAllOrderList(orderLists)
             .build();
   }
+
     @Override
     public List<UserOrderInfoRequestDto> getUserOrderInfoList(String userId) {
         // 사용자 조회

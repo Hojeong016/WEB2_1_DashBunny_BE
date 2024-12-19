@@ -1,3 +1,4 @@
+/*
 package com.devcourse.web2_1_dashbunny_be.feature.admin.kafka;
 
 import lombok.RequiredArgsConstructor;
@@ -29,4 +30,4 @@ public class KafkaProducerService {
 }
 //역할: 쿠폰 다운로드 요청을 Kafka의 coupon-download-topic 토픽으로 보냄
 //메시지 포맷:CouponRequestMessage 객체를 JSON으로 직렬화하여 전달.
-//장점:Kafka가 요청을 받아들이는 대기열 역할을 하여 서버 부하를 분산한다.
+//장점:Kafka가 요청을 받아들이는 대기열 역할을 하여 서버 부하를 분산한다.*/
