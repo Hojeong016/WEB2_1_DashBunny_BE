@@ -14,7 +14,6 @@ public class OrdersListResponseDto implements Serializable {
     private List<OrderDetailDto> orderDetail;
     private List<OrderListDto>orderList;
 
-
     public OrdersListResponseDto(List<OrderDetailDto> orderDetail, List<OrderListDto> orderList) {
         this.orderDetail = orderDetail;
         this.orderList = orderList;

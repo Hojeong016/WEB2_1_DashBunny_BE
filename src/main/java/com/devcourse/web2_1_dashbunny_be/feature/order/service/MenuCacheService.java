@@ -5,11 +5,9 @@ import com.devcourse.web2_1_dashbunny_be.domain.owner.MenuManagement;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,7 +16,6 @@ public class MenuCacheService {
 
     @Qualifier("menuRedisTemplate")
     private final HashOperations<String, String, Object> hashOps;
-    private final RedisTemplate<String, Object> redisTemplate;
 
 
     // 메뉴 추가

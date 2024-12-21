@@ -14,6 +14,8 @@ import com.devcourse.web2_1_dashbunny_be.feature.owner.menu.repository.MenuRepos
 import com.devcourse.web2_1_dashbunny_be.feature.order.repository.OrdersRepository;
 import com.devcourse.web2_1_dashbunny_be.feature.owner.store.repository.StoreFeedBackRepository;
 import com.devcourse.web2_1_dashbunny_be.feature.owner.store.repository.StoreManagementRepository;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 import com.order.generated.ordersListResponseProtobuf;
 import com.devcourse.web2_1_dashbunny_be.feature.user.repository.UserRepository;
 import com.order.generated.*;
@@ -52,48 +54,55 @@ public class OrderServiceImpl implements OrderService {
    * Async 어노테이션을 사용 하지 않고 .supplyAsync 사용하여 명시적으로 비동기 처리를 진행하였습니다.
    * 재고 등록 여부에 따라 각각 비동기 처리를 하였습니다.
    */
-  @Transactional
   @Override
   public CompletableFuture<Orders> creatOrder(OrderInfoRequestDto orderInfoRequestDto) {
+    // 트랜잭션 경계 분리
+    Orders orders = processOrder(orderInfoRequestDto);
+
+    // 비동기 작업으로 Redis 저장 및 알림 처리
     return CompletableFuture.supplyAsync(() -> {
-      User user = validator.validateUserId(orderInfoRequestDto.getUserPhone());
-      StoreManagement store = validator.validateStoreId(orderInfoRequestDto.getStoreId());
-      Orders orders = orderInfoRequestDto.toEntity(orderInfoRequestDto.getOrderItems(), menuRepository, user, store);
-
-      log.info(orders.getDeliveryAddress());
-      //재고 등록이 된 메뉴 리스트
-      List<OrderItem> stockItems = filterStockItems(orders.getOrderItems(),true);
-      Map<Long, MenuManagement> stockItemsMenuCache = getMenuCache(stockItems);
-      List<OrderItem> nonStockItems = filterStockItems(orders.getOrderItems(),false);
-
-      processStockItems(stockItems, stockItemsMenuCache,nonStockItems);
-
-      orders.setTotalMenuCount(stockItems.size() + nonStockItems.size());
-      // 주문 저장
-      ordersRepository.save(orders);
-      //레디스 캐시 저장
       saveOrderToRedis(orders, orders.getStore().getStoreId());
-      // 메시지 알림
-      StoreOrderAlarmResponseDto responseDto = StoreOrderAlarmResponseDto.fromEntity(orders);
-      // 메시지 페이로드 구성
-      Map<String, Object> payload = new HashMap<>();
-      payload.put("type", "ORDER_RECEIVED"); // 이벤트 타입
-      payload.put("message", "새로운 주문이 접수되었습니다.");
-      payload.put("data", responseDto); // DTO를 데이터에 포함
-
-      String orderTopic = String.format("/topic/storeOrder/" + orders.getOrderId());
-      messageTemplate.convertAndSend(orderTopic, responseDto);
-      log.info("사장님 알람 전송" + payload);
-
+      sendStoreOrderNotification(orders);
       return orders;
     });
+  }
+
+  @Transactional
+  protected Orders processOrder(OrderInfoRequestDto orderInfoRequestDto) {
+    User user = validator.validateUserId(orderInfoRequestDto.getUserPhone());
+    StoreManagement store = validator.validateStoreId(orderInfoRequestDto.getStoreId());
+    Orders orders = orderInfoRequestDto.toEntity(orderInfoRequestDto.getOrderItems(), menuRepository, user, store);
+
+    log.info(orders.getDeliveryAddress());
+    List<OrderItem> stockItems = filterStockItems(orders.getOrderItems(), true);
+    Map<Long, MenuManagement> stockItemsMenuCache = getMenuCache(stockItems);
+    List<OrderItem> nonStockItems = filterStockItems(orders.getOrderItems(), false);
+
+    processStockItems(stockItems, stockItemsMenuCache, nonStockItems);
+
+    orders.setTotalMenuCount(stockItems.size() + nonStockItems.size());
+    ordersRepository.save(orders);
+
+    return orders;
+  }
+
+  private void sendStoreOrderNotification(Orders orders) {
+    StoreOrderAlarmResponseDto responseDto = StoreOrderAlarmResponseDto.fromEntity(orders);
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("type", "ORDER_RECEIVED");
+    payload.put("message", "새로운 주문이 접수되었습니다.");
+    payload.put("data", responseDto);
+
+    String orderTopic = String.format("/topic/storeOrder/" + orders.getOrderId());
+    messageTemplate.convertAndSend(orderTopic, responseDto);
+    log.info("사장님 알람 전송" + payload);
   }
 
   /**
    * 주문 정보를 프로토버퍼를 사용하여 바이너리 형태로 변환 후 레디스 캐시에 저장합니다.
    * key : storeId
    * filed : orderId
-   * value : Orders
+   * value : OrdersProtobuf.Orders
    */
   private void saveOrderToRedis(Orders orders, String storeId){
 
@@ -153,7 +162,7 @@ public class OrderServiceImpl implements OrderService {
   /**
   * OrderItem 리스트를 기반으로 메뉴 ID를 키로,
   * 메뉴 객체(MenuManagement)를 값으로 하는 맵을 생성.
-  *  메뉴 ID에 대해 중복으로 조회하지 않도록 캐싱 기능을 제공하기 위한 메서드.
+  * 메뉴 ID에 대해 중복으로 조회하지 않도록 캐싱 기능을 제공하기 위한 메서드.
   */
   public Map<Long, MenuManagement> getMenuCache(List<OrderItem> orderItems) {
     Map<Long, MenuManagement> menuCache = new HashMap<>();
@@ -183,7 +192,6 @@ public class OrderServiceImpl implements OrderService {
 
     return menuCache;
   }
-
 
   /**
    * 재고 확인 메서드.
@@ -219,7 +227,7 @@ public class OrderServiceImpl implements OrderService {
   else if (type == 0) {
   menu.setMenuStock(menu.getMenuStock() + orderItem.getQuantity());
   }
-      log.info("재고 업데이트 진행"+menu.getMenuStock());
+  log.info("재고 업데이트 진행"+menu.getMenuStock());
   menuRepository.save(menu);
     });
     //레디스 변경
@@ -259,55 +267,49 @@ public class OrderServiceImpl implements OrderService {
     return CompletableFuture.completedFuture(responseDto);
   }
 
+  /**
+   * 레디스 캐시에 바이너리 형식으로 저장되어있는 주문 정보를 가져와 dto에 담아 반환.
+   */
   @Override
-  public ordersListResponseProtobuf.OrdersListResponse getOrdersList(String storeId) {
-    // 1. Store ID로 모든 Orders 가져오기
-    List<Orders> orders = ordersRepository.findAllByStore_StoreId(storeId);
+  public String getOrdersList(String storeId) throws InvalidProtocolBufferException {
+    Map<Long,OrdersProtobuf.Orders> ordersMap = orderCacheService.getOrderFromStore(storeId);
 
-    // 2. Orders → OrderDetail Protobuf 메시지로 변환
-    List<OrderDetailProtobuf.OrderDetail> orderDetails = orders.stream()
-            .map(order -> {
-              // OrderItems를 Protobuf로 변환
-              List<OrderItemProtobuf.OrderItem> orderItems = order.getOrderItems().stream()
-                      .map(orderItem -> OrderItemProtobuf.OrderItem.newBuilder()
-                              .setMenuId(orderItem.getMenu().getMenuId())
-                              .setMenuName(orderItem.getMenu().getMenuName())
-                              .setStockAvailableAtOrder(orderItem.isStockAvailableAtOrder())
-                              .setQuantity(orderItem.getQuantity())
-                              .setPrice(orderItem.getTotalPrice())
-                              .build())
-                      .toList();
-              //.newBuilder() → 빌더 객체 반환 (중간 단계).
-
-              // Order → OrderDetail Protobuf로 변환
-              return OrderDetailProtobuf.OrderDetail.newBuilder()
-                      .setOrderId(order.getOrderId())
-                      .setTotalPrice(order.getTotalPrice())
-                      .addAllOrderItems(orderItems)
-                      .setOrderStatus(OrderStatusProtobuf.OrderStatus.valueOf(order.getOrderStatus().name())) // Enum 매핑
-                      .setStoreNote(order.getStoreNote())
-                      .setPreparationTime(order.getPreparationTime())
-                      .build();
-            })
-            .toList();
-
-    // 3. 스토어가 가진 모든 Orders 정보를 OrderList Protobuf로 변환
-    List<Orders> ordersList = validator.findByOrders(storeId);
-    List<OrderListProtobuf.OrderList> orderLists = ordersList.stream()
-            .map(order -> OrderListProtobuf.OrderList.newBuilder()
-                    .addAllMenuName(order.getOrderItems().stream()
-                            .map(orderItem -> orderItem.getMenu().getMenuName())
-                            .toList())
-                    .setPreparationTime(order.getPreparationTime())
-                    .setTotalPrice(order.getTotalPrice())
+    log.info(ordersMap.toString());
+    // OrderDetailProtobuf.OrderDetail 리스트 생성
+    List<OrderDetailProtobuf.OrderDetail> orderDetails = ordersMap.values().stream()
+            .map(orderValue -> OrderDetailProtobuf.OrderDetail.newBuilder()
+                    .setOrderId(orderValue.getOrderId())
+                    .setTotalPrice(orderValue.getTotalPrice())
+                    .addAllOrderItems(orderValue.getOrderItemsList())
+                    .setOrderStatus(orderValue.getOrderStatus())
+                    .setStoreNote(orderValue.getStoreNote())
+                    .setPreparationTime(orderValue.getPreparationTime())
                     .build())
             .toList();
+    log.info(orderDetails.toString());
 
-    // 4. OrdersListResponse Protobuf 반환
-    return ordersListResponseProtobuf.OrdersListResponse.newBuilder()
+    //주문내역 리스트에 담길 일부 정보만 담긴 리스트
+    List<OrderListProtobuf.OrderList> orderLists = ordersMap.values().stream()
+            .map(orderValue -> OrderListProtobuf.OrderList.newBuilder()
+                    .addAllMenuName(orderValue.getOrderItemsList().stream()
+                            .map(OrderItemProtobuf.OrderItem::getMenuName) // 메뉴 이름만 추출
+                            .toList())
+                    .setPreparationTime(orderValue.getPreparationTime())
+                    .setTotalPrice(orderValue.getTotalPrice())
+                    .build())
+            .toList();
+    log.info(orderLists.toString());
+
+    // OrdersListResponse Protobuf 생성
+    ordersListResponseProtobuf.OrdersListResponse response = ordersListResponseProtobuf.OrdersListResponse.newBuilder()
             .addAllOrderDetail(orderDetails)
             .addAllOrderList(orderLists)
             .build();
+
+    // Protobuf 메시지를 JSON 문자열로 변환
+    String json = JsonFormat.printer().print(response);
+    log.info("Converted JSON: " + json);
+    return json;
   }
 
     @Override
@@ -342,6 +344,7 @@ public class OrderServiceImpl implements OrderService {
         log.info(userOrderInfoRequestDtos.toString());
         return userOrderInfoRequestDtos;
     }
+
     @Override
     public void increaseRating(OrderRatingResponseDto orders) {
         DecimalFormat df = new DecimalFormat("#.0");

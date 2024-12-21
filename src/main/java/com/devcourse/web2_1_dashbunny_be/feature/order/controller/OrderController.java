@@ -4,17 +4,14 @@ import com.devcourse.web2_1_dashbunny_be.domain.user.User;
 import com.devcourse.web2_1_dashbunny_be.feature.order.controller.dto.*;
 import com.devcourse.web2_1_dashbunny_be.feature.order.controller.dto.user.UserOrderInfoRequestDto;
 import com.devcourse.web2_1_dashbunny_be.feature.order.service.OrderService;
-import com.order.generated.ordersListResponseProtobuf;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.devcourse.web2_1_dashbunny_be.feature.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,24 +108,14 @@ public class OrderController {
   * 사장님 주문 관리 페이지.
    * 모든 오더 객체의 정보를 리스트로 담아서 반환합니다.
    * 관리 페이지가 자주 갱신되는 데이터를 실시간으로 반영-> 비동기
+   * 프로토버퍼 객체 -> Json으로 변환하여 반환
   */
   @GetMapping("store/order-list/{storeId}")
-  public ResponseEntity<byte[]> getOrderList(@PathVariable("storeId") String storeId) {
-      // Protobuf 객체 생성
-      ordersListResponseProtobuf.OrdersListResponse response = orderService.getOrdersList(storeId);
-
-      // Protobuf 메시지를 바이너리 데이터로 직렬화
-      byte[] responseBytes = response.toByteArray();
-
-      // HTTP 응답 설정
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-      headers.setContentLength(responseBytes.length);
-
-      // 응답 반환
-      return new ResponseEntity<>(responseBytes, headers, HttpStatus.OK);
+  public ResponseEntity<String> getOrderList(@PathVariable("storeId") String storeId) throws InvalidProtocolBufferException {
+      String response = orderService.getOrdersList(storeId);
+      log.info(response);
+      return new ResponseEntity<>(response, HttpStatus.OK);
   }
-
 
   @GetMapping("/list")
   public ResponseEntity<List<UserOrderInfoRequestDto>> listOrders(@RequestHeader("Authorization") String authorizationHeader) {
@@ -144,12 +131,4 @@ public class OrderController {
     return ResponseEntity.ok().build();
   }
 
-//  @PostMapping("/delivery-requests/{storeId}/{orderId}")
-//  public ResponseEntity<deliveryRequestsResponseDto> deliveryRequests( @PathVariable("storeId") String StoreId,
-//                                                                       @PathVariable("orderId") Long orderId,
-//                                                                       @RequestBody DeliveryRequestsRequestDto deliveryRequestsRequestDto){
-//
-//
-//    return null;
-//  }
 }
